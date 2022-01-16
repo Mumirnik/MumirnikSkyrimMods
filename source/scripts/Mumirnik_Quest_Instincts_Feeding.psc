@@ -12,6 +12,7 @@ float property GoldToHungerPotionAdd auto
 float property GoldToHungerPotionMult auto
 {This is multiplied by the gold cost of a potion to determine its hunger restore.}
 FormList property EmptyList auto
+FormList property FullList auto
 FormList property FoodList auto
 {List of pet races corresponding 1:1 to original races in PetOptions.}
 Sound property EatSound auto
@@ -48,8 +49,7 @@ FormList function GetFoodListForOriginalRace(Actor akTarget)
 
 	FormList foodListForRace = FoodList.GetAt(raceId) as FormList
 	if (!foodListForRace)
-		MessageBox("Error: No food list for race")
-		return EmptyList
+		return FullList
 	endIf
 	return foodListForRace
 endFunction
