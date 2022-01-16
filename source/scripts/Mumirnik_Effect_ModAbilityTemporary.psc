@@ -1,0 +1,1 @@
+Scriptname Mumirnik_Effect_ModAbilityTemporary extends activemagiceffect  
