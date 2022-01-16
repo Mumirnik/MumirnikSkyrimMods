@@ -1,8 +1,6 @@
 Scriptname Mumirnik_Quest_Instincts_PetStats extends Quest  
 {Manages all pet stats. Exposes functions to modify innate pet stats, modify stats, and display stats.}
 
-float property PetHealthPercentMod auto
-{The delta applied to health to determine a newly tamed pet's stats.}
 GlobalVariable property HungerDecayRateGlobal auto
 GlobalVariable property HungerDecayRateWhenWaitingGlobal auto
 GlobalVariable property PetCount auto
@@ -10,8 +8,6 @@ Message[] property HungerLimitMaxMessage auto
 Message[] property HungerLimitMinMessage auto
 Message[] property HungerChangeMessage auto
 Message[] property PetStatisticsMessage auto
-string property HealthInnateModifierAVName auto
-{The name of the actor value that keeps track of how much the pet's health has been globally modified by upon taming. This is necessary because there's no health percentage modifier so we need to calculate the flat equivalent and store it.}
 string property HungerAVName auto
 {The name of the actor value that tracks Hunger.}
 string property HungerFortifyAVName auto
@@ -21,29 +17,21 @@ string property ExperienceFortifyAVName auto
 
 bool StarvationWarningTriggered = false
 
-function ShowPetStats(Actor akTarget, int aiSlot)
+function ShowPetStats(Actor akTarget, int aiSlot = -1)
 {Shows a message box with the pet's current stats and level.}
+	if (aiSlot == -1)
+		aiSlot = ((self as Quest) as Mumirnik_Quest_Instincts_PetOptions).GetSlotNumberForActor(akTarget)
+	endIf
 	string petLevelAVName = ((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).PetLevelAVName
+	string petLevelProgressAVName = ((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).PetLevelProgressAVName
 	float petLevel = akTarget.GetActorValue(petLevelAVName)
+	float petLevelProgress = akTarget.GetActorValue(petLevelProgressAVName)
 	float petDamage = akTarget.GetActorValue("UnarmedDamage")
 	float petHealthMax = akTarget.GetActorValue("Health")
 	float petHungerModifier = akTarget.GetActorValue(HungerFortifyAVName)
-	PetStatisticsMessage[aiSlot].Show(petLevel, petDamage, petHealthMax, petHungerModifier)
+	float petExperienceModifier = akTarget.GetActorValue(ExperienceFortifyAVName)
+	PetStatisticsMessage[aiSlot].Show(petLevel, (petLevelProgress as int), (petLevelProgress - (petLevelProgress as int)) * 100, petDamage, petHealthMax, petHungerModifier, petExperienceModifier)
 endFunction
-
-;function ApplyPetStatMultipliers(Actor akTarget)
-;{Modifies the innate pet stats of a newly tamed pet. Pets have their health globally modified to make them balanced.}
-;	float calculatedHealthMod = akTarget.GetActorValue("Health") * PetHealthPercentMod * (-1)
-;	akTarget.ModActorValue("Health", calculatedHealthMod)
-;	akTarget.ModActorValue(HealthInnateModifierAVName, calculatedHealthMod)
-;endFunction
-
-;function RevertPetStatMultipliers(Actor akTarget)
-;{Reverts the innate pet stats of a newly tamed pet. Pets have their health globally modified to make them balanced.}
-;	float calculatedHealthMod = akTarget.GetActorValue(HealthInnateModifierAVName)
-;	akTarget.ModActorValue("Health", -calculatedHealthMod)
-;	akTarget.ModActorValue(HealthInnateModifierAVName, -calculatedHealthMod)
-;endFunction
 
 function UpdatePetStatsGameTime(Actor akTarget)
 {Ticks every hour on each pet. Handles hunger decay and experience growth.}
@@ -58,7 +46,9 @@ function UpdatePetStatsGameTime(Actor akTarget)
 	ModHunger(akTarget, -hungerDecay)
 
 	string petLevelAVName = ((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).PetLevelAVName
-	((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).Progress(akTarget, 1.0)
+	int petLevel = akTarget.GetActorValue(petLevelAVName) as int
+	float progressAmount = 1.0 / (petLevel + 1.0)
+	((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).Progress(akTarget, progressAmount)
 endFunction
 
 function SetHunger(Actor akTarget, float aiValue)
@@ -75,7 +65,7 @@ function ModHunger(Actor akTarget, float aiValue)
 
 	float value = akTarget.GetActorValue(HungerAVName)
 	if (value < 0)
-		akTarget.SetActorValue(HungerAVName, 0)
+		akTarget.ModActorValue(HungerAVName, -value)
 		if (akTarget.GetActorValue("WaitingForPlayer") == 1 && !StarvationWarningTriggered)
 			int slotNumber = ((self as Quest) as Mumirnik_Quest_Instincts_PetOptions).GetSlotNumberForActor(akTarget)
 			HungerLimitMinMessage[slotNumber].Show()
@@ -83,8 +73,8 @@ function ModHunger(Actor akTarget, float aiValue)
 		endIf
 	else
 		StarvationWarningTriggered = false
-		If (value > 100)
-			akTarget.SetActorValue(HungerAVName, 100)
+		if (value > 100)
+			akTarget.ModActorValue(HungerAVName, 100 - value)
 			int slotNumber = ((self as Quest) as Mumirnik_Quest_Instincts_PetOptions).GetSlotNumberForActor(akTarget)
 			HungerLimitMaxMessage[slotNumber].Show()
 		endIf

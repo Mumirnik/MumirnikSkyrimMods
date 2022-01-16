@@ -13,43 +13,17 @@ Message[] property ProgressionAvailableMessage auto
 Message property TrainingConfirmMessageAttackDamage auto
 Message property TrainingConfirmMessageHealth auto
 Message property TrainingConfirmMessageHungerFortify auto
-string property AttackDamageModifierAVName auto
-{Internal actor value that keeps track of how much you have increased attack damage by.}
 string property PetLevelAVName auto
 {The name of the actor value that tracks the "level" the target pet is currently at at. This does not correspond to their real level for technical reasons. It caps out at PetLevelProgressAVName.}
 string property PetLevelProgressAVName auto
 {The name of the actor value that tracks the "level" progression of the target pet. This creeps up as you do things that increase its "level". The maximum amount of "levels" the pet can get is equal to Floor(this).}
 string property PetLevelAvailableFlagAVName auto
 {The name of the actor value that flags the target pet as being able to level up.}
-string property HealthModifierAVName auto
-{Internal actor value that keeps track of how much you have increased health by.}
-string property HungerFortifyModifierAVName auto
-{Internal actor value that keeps track of how much you have increased hunger fortify by.}
 
 function InitTrainingProgression(Actor akTarget)
 {Initializes training progression when the animal is tamed.}
 	akTarget.SetActorValue(PetLevelAVName, 1.0)
 	akTarget.SetActorValue(PetLevelProgressAVName, 1.0)
-	akTarget.SetActorValue(PetLevelAvailableFlagAVName, 0.0)
-endFunction
-
-function UndoTrainingProgression(Actor akTarget)
-{Restores training progression to base values when the animal is released.}
-	float attackDamageModifier = akTarget.GetActorValue(AttackDamageModifierAVName)
-	akTarget.ModActorValue("UnarmedDamage", -attackDamageModifier)
-	akTarget.ModActorValue(AttackDamageModifierAVName, -attackDamageModifier)
-
-	float healthModifier = akTarget.GetActorValue(HealthModifierAVName)
-	akTarget.ModActorValue("Health", -healthModifier)
-	akTarget.ModActorValue(HealthModifierAVName, -healthModifier)
-
-	float hungerFortifyModifier = akTarget.GetActorValue(HungerFortifyModifierAVName)
-	string hungerFortifyAVName = ((self as Quest) as Mumirnik_Quest_Instincts_PetStats).HungerFortifyAVName
-	akTarget.ModActorValue(hungerFortifyAVName, -hungerFortifyModifier)
-	akTarget.ModActorValue(HungerFortifyModifierAVName, -hungerFortifyModifier)
-
-	akTarget.SetActorValue(PetLevelAVName, 1.0)
-	akTarget.SetActorValue(PetLevelProgressAVName, 0.0)
 	akTarget.SetActorValue(PetLevelAvailableFlagAVName, 0.0)
 endFunction
 
@@ -61,7 +35,7 @@ function Train(Actor akTarget)
 		int petLevelTotal = akTarget.GetActorValue(PetLevelAVName) as int
 		float petDamageTotal = akTarget.GetActorValue("UnarmedDamage")
 		float petHealthTotal = akTarget.GetActorValue("Health")
-		float petHungerFortifyTotal = akTarget.GetActorValue(HungerFortifyAVName)
+		float petHungerFortifyTotal = akTarget.GetActorValue(hungerFortifyAVName)
 		int petLevelAdd = 0
 		float petDamageAdd = 0
 		float petHealthAdd = 0
@@ -108,15 +82,12 @@ function Train(Actor akTarget)
 		endIf
 		if (petDamageAdd > 0)
 			akTarget.ModActorValue("UnarmedDamage", petDamageAdd)
-			akTarget.ModActorValue(AttackDamageModifierAVName, petDamageAdd)
 		endIf
 		if (petHealthAdd > 0)
 			akTarget.ModActorValue("Health", petHealthAdd)
-			akTarget.ModActorValue(HealthModifierAVName, petHealthAdd)
 		endIf
 		if (petHungerFortifyAdd > 0)
 			akTarget.ModActorValue(hungerFortifyAVName, petHungerFortifyAdd)
-			akTarget.ModActorValue(HungerFortifyModifierAVName, petHungerFortifyAdd)
 		endIf
 
 		if (petLevelTotal < (petLevelProgress as int))

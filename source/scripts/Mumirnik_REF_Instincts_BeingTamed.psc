@@ -1,12 +1,14 @@
 Scriptname Mumirnik_REF_Instincts_BeingTamed extends ReferenceAlias  
 
+import Game
+import Utility
+
 float property GoldToTamingStrengthIngredientAdd auto
 float property GoldToTamingStrengthIngredientMult auto
 float property GoldToTamingStrengthPotionAdd auto
 float property GoldToTamingStrengthPotionMult auto
 
 event OnItemAdded(Form akBaseItem, int aiItemCount, ObjectReference akItemReference, ObjectReference akSourceContainer)
-
 	Actor thisActor = GetActorReference()
 	Quest owningQuest = GetOwningQuest()
 
@@ -23,6 +25,5 @@ event OnItemAdded(Form akBaseItem, int aiItemCount, ObjectReference akItemRefere
 	endIf
 	itemValue *= aiItemCount
 
-	(owningQuest as Mumirnik_Quest_Instincts_PetOptions).MakePet(thisActor)
-
+	(owningQuest as Mumirnik_Quest_Instincts_PetOptions).TryMakePet(thisActor, itemValue)
 endEvent

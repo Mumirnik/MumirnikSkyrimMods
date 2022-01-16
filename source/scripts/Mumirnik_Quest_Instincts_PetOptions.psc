@@ -2,6 +2,7 @@ Scriptname Mumirnik_Quest_Instincts_PetOptions extends Quest
 {The guts of the pet system. Handles pet taming and releasing, and manages pet slots and the slot cap.}
 
 import Debug
+import Utility
 
 Activator[] property PetHungerActivator auto
 {MUST be at least 6 items. Hunger progression is hardcoded.}
@@ -15,21 +16,47 @@ FormList property PetActorList auto
 {List of pet actors.}
 GlobalVariable property PetCount auto
 {Current number of pets.}
+Message property ChanceToTame auto
+Message property ChanceToTameFAILED auto
 Message[] property TamedMessage auto
 {Shown when a pet is tamed.}
 Race property WolfRace auto
 {Used for special casing.}
 ReferenceAlias[] property PetREF auto
 ReferenceAlias[] property PetHungerREF auto
+Sound property TamedSound auto
 Spell[] property HungerBuffSpell auto
 {MUST be at least 6 items. Hunger progression is hardcoded.}
 
 bool TimerIsRunning = false
+Actor AnimalToTame = NONE
+float TameChance = 0.0
 
-ActorBase property TestWolf auto
+function TryMakePet(Actor akTarget, float aiValue)
+{This is called from the taming feature. It is a thread safe way to make a target your pet.}
+	AnimalToTame = akTarget
+	TameChance += aiValue
+	ChanceToTame.Show(TameChance)
+	RegisterForSingleUpdate(0.02)
+endFunction
+
+event OnUpdate()
+	if (AnimalToTame)
+		if (RandomInt(0, 99) < TameChance)
+			MakePet(AnimalToTame)
+		else
+			ChanceToTameFAILED.Show()
+		endIf
+		AnimalToTame = NONE
+		TameChance = 0.0
+	endIf
+endEvent
 
 function MakePet(Actor akTarget)
-{This makes the target your pet, initializes its stats and starts the hunger time. Will throw if the target is an invalid race or there are no free pet slots.}
+{This makes the target your pet, initializes its stats and starts the hunger timer. Will throw if the target is an invalid race or there are no free pet slots.}
+	akTarget.SetAlpha(0.0, true)
+	akTarget.SetCriticalStage(akTarget.CritStage_DisintegrateEnd)
+
 	Race originalRace = akTarget.GetRace()
 	int originalRaceId = -1
 	originalRaceId = OriginalRaceList.Find(originalRace)
@@ -39,13 +66,14 @@ function MakePet(Actor akTarget)
 	endIf
 
 	ActorBase newActorBase = PetActorList.GetAt(originalRaceId) as ActorBase
-	
 	if (originalRace == WolfRace && akTarget.GetActorBase() == EncWolfIce)
 		newActorBase = EncWolfIcePet ; special case for ice wolves which do not have a custom race but do have higher stats
 	endIf
 	
-	akTarget.Disable()
-	Actor petActor = akTarget.PlaceActorAtMe(TestWolf)
+	Actor petActor = akTarget.PlaceActorAtMe(newActorBase)
+	PetActor.MoveTo(akTarget)
+
+	TamedSound.Play(petActor)
 
 	int slotFilled = -1
 	if (PetREF[0].GetReference() == NONE)
@@ -64,6 +92,8 @@ function MakePet(Actor akTarget)
 		return
 	endIf
 
+	akTarget.Kill()
+
 	petActor.StopCombat()
 	petActor.SetPlayerTeammate(true, false)
 	petActor.EvaluatePackage()
@@ -73,8 +103,8 @@ function MakePet(Actor akTarget)
 	TamedMessage[slotFilled].Show()
 
 	petActor.RestoreActorValue("Health", 10000)
-	((self as Quest) as Mumirnik_Quest_Instincts_PetStats).SetHunger(akTarget, 50)
-	((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).InitTrainingProgression(akTarget)
+	((self as Quest) as Mumirnik_Quest_Instincts_PetStats).SetHunger(petActor, 50)
+	((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).InitTrainingProgression(petActor)
 
 	if (!TimerIsRunning)
 		TimerIsRunning = true
@@ -84,6 +114,8 @@ endFunction
 
 function ReleasePet(Actor akTarget)
 {This releases your pet and clears the pet slot. Will throw if the pet is an invalid race or does not exist in a pet slot.}
+	akTarget.BlockActivation(true)
+
 	if (PetREF[0].GetReference() == akTarget)
 		PetREF[0].Clear()
 		PetHungerREF[0].Clear()
@@ -98,25 +130,8 @@ function ReleasePet(Actor akTarget)
 		return
 	endIf
 
+	akTarget.Disable(true)
 	akTarget.Delete()
-
-;	petActor.StopCombat()
-;	petActor.SetPlayerTeammate(false, false)
-;	petActor.EvaluatePackage()
-
-	PetCount.Mod(-1)
-
-;	akTarget.RestoreActorValue("Health", 10000)
-;	akTarget.SetActorValue("WaitingForPlayer", 0)
-;	((self as Quest) as Mumirnik_Quest_Instincts_PetStats).RevertPetStatMultipliers(akTarget)
-;	((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).UndoTrainingProgression(akTarget)
-
-;	akTarget.RemoveSpell(HungerBuffSpell[0])
-;	akTarget.RemoveSpell(HungerBuffSpell[1])
-;	akTarget.RemoveSpell(HungerBuffSpell[2])
-;	akTarget.RemoveSpell(HungerBuffSpell[3])
-;	akTarget.RemoveSpell(HungerBuffSpell[4])
-;	akTarget.RemoveSpell(HungerBuffSpell[5])
 
 	if (PetCount.GetValue() == 0 && TimerIsRunning)
 		TimerIsRunning = false
@@ -149,7 +164,7 @@ ReferenceAlias function GetRefForActor(Actor akTarget)
 	elseIf (PetREF[2].GetReference() == akTarget)
 		return PetREF[2]
 	else
-		MessageBox("Error: Target does not belong to any known pet slot")
+		MessageBox("Error: Cannot find ref for actor because target does not belong to any known pet slot")
 		return NONE
 	endIf
 endFunction
@@ -163,7 +178,7 @@ ReferenceAlias function GetHungerRefForActor(Actor akTarget)
 	elseIf (PetREF[2].GetReference() == akTarget)
 		return PetHungerREF[2]
 	else
-		MessageBox("Error: Target does not belong to any known pet slot")
+		MessageBox("Error: Cannot find hunger ref for actor because target does not belong to any known pet slot")
 		return NONE
 	endIf
 endFunction
@@ -177,7 +192,7 @@ int function GetSlotNumberForActor(Actor akTarget)
 	elseIf (PetREF[2].GetReference() == akTarget)
 		return 2
 	else
-		MessageBox("Error: Target does not belong to any known pet slot")
+		MessageBox("Error: Cannot find slot number for actor because target does not belong to any known pet slot")
 		return -1
 	endIf
 endFunction
@@ -239,7 +254,7 @@ function RefreshHungerDisplay(Actor akTarget)
 	ThisPetHungerREF.ForceRefTo(NONE)
 	petHungerInstanceOld.Delete()
 
-	string hungeRAVName = ((self as Quest) as Mumirnik_Quest_Instincts_PetStats).HungerAVName
+	string hungerAVName = ((self as Quest) as Mumirnik_Quest_Instincts_PetStats).HungerAVName
 	int Hunger = akTarget.GetActorValue(hungerAVName) as int
 	Activator petHungerType = NONE
 	if (Hunger >= 90)
