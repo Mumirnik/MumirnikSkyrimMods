@@ -31,19 +31,19 @@ function ShowPetStats(Actor akTarget, int aiSlot)
 	PetStatisticsMessage[aiSlot].Show(petLevel, petDamage, petHealthMax, petHungerModifier)
 endFunction
 
-function ApplyPetStatMultipliers(Actor akTarget)
-{Modifies the innate pet stats of a newly tamed pet. Pets have their health globally modified to make them balanced.}
-	float calculatedHealthMod = akTarget.GetActorValue("Health") * PetHealthPercentMod * (-1)
-	akTarget.ModActorValue("Health", calculatedHealthMod)
-	akTarget.ModActorValue(HealthInnateModifierAVName, calculatedHealthMod)
-endFunction
+;function ApplyPetStatMultipliers(Actor akTarget)
+;{Modifies the innate pet stats of a newly tamed pet. Pets have their health globally modified to make them balanced.}
+;	float calculatedHealthMod = akTarget.GetActorValue("Health") * PetHealthPercentMod * (-1)
+;	akTarget.ModActorValue("Health", calculatedHealthMod)
+;	akTarget.ModActorValue(HealthInnateModifierAVName, calculatedHealthMod)
+;endFunction
 
-function RevertPetStatMultipliers(Actor akTarget)
-{Reverts the innate pet stats of a newly tamed pet. Pets have their health globally modified to make them balanced.}
-	float calculatedHealthMod = akTarget.GetActorValue(HealthInnateModifierAVName)
-	akTarget.ModActorValue("Health", -calculatedHealthMod)
-	akTarget.ModActorValue(HealthInnateModifierAVName, -calculatedHealthMod)
-endFunction
+;function RevertPetStatMultipliers(Actor akTarget)
+;{Reverts the innate pet stats of a newly tamed pet. Pets have their health globally modified to make them balanced.}
+;	float calculatedHealthMod = akTarget.GetActorValue(HealthInnateModifierAVName)
+;	akTarget.ModActorValue("Health", -calculatedHealthMod)
+;	akTarget.ModActorValue(HealthInnateModifierAVName, -calculatedHealthMod)
+;endFunction
 
 function UpdatePetStatsGameTime(Actor akTarget)
 {Ticks every hour on each pet. Handles hunger decay and experience growth.}

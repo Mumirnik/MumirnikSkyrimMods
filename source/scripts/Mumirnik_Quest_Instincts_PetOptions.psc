@@ -7,16 +7,17 @@ Activator[] property PetHungerActivator auto
 {MUST be at least 6 items. Hunger progression is hardcoded.}
 ActorBase property EncWolfIce auto
 {Used for special casing.}
+ActorBase property EncWolfIcePet auto
+{Used for special casing.}
 FormList property OriginalRaceList auto
 {List of races that can be turned into pets.}
-FormList property PetRaceList auto
-{List of pet races corresponding 1:1 to original races.}
+FormList property PetActorList auto
+{List of pet actors.}
 GlobalVariable property PetCount auto
 {Current number of pets.}
 Message[] property TamedMessage auto
 {Shown when a pet is tamed.}
 Race property WolfRace auto
-Race property WolfIcePetRace auto
 {Used for special casing.}
 ReferenceAlias[] property PetREF auto
 ReferenceAlias[] property PetHungerREF auto
@@ -25,48 +26,53 @@ Spell[] property HungerBuffSpell auto
 
 bool TimerIsRunning = false
 
+ActorBase property TestWolf auto
+
 function MakePet(Actor akTarget)
 {This makes the target your pet, initializes its stats and starts the hunger time. Will throw if the target is an invalid race or there are no free pet slots.}
+	Race originalRace = akTarget.GetRace()
 	int originalRaceId = -1
-	originalRaceId = OriginalRaceList.Find(akTarget.GetRace())
+	originalRaceId = OriginalRaceList.Find(originalRace)
 	if (originalRaceId == -1)
 		MessageBox("Error: Unknown actor race")
 		return
 	endIf
 
-	Race newRace = PetRaceList.GetAt(originalRaceId) as Race
+	ActorBase newActorBase = PetActorList.GetAt(originalRaceId) as ActorBase
 	
-	if (newRace == WolfRace && akTarget.GetActorBase() == EncWolfIce)
-		newRace = WolfIcePetRace	; special case for ice wolves which do not have a custom race but do have higher stats
+	if (originalRace == WolfRace && akTarget.GetActorBase() == EncWolfIce)
+		newActorBase = EncWolfIcePet ; special case for ice wolves which do not have a custom race but do have higher stats
 	endIf
-	akTarget.SetRace(newRace)
+	
+	akTarget.Disable()
+	Actor petActor = akTarget.PlaceActorAtMe(TestWolf)
 
 	int slotFilled = -1
 	if (PetREF[0].GetReference() == NONE)
-		PetREF[0].ForceRefTo(akTarget)
+		PetREF[0].ForceRefTo(petActor)
 		slotFilled = 0
 	elseIf (PetREF[1].GetReference() == NONE)
-		PetREF[1].ForceRefTo(akTarget)
+		PetREF[1].ForceRefTo(petActor)
 		slotFilled = 1
 	elseIf (PetREF[2].GetReference() == NONE)
-		PetREF[2].ForceRefTo(akTarget)
+		PetREF[2].ForceRefTo(petActor)
 		slotFilled = 2
 	else
-		MessageBox("Error: No free pet slot, PetCount = " + PetCount.GetValue() as Int + ", reverting race")
-		akTarget.SetRace(OriginalRaceList.GetAt(originalRaceId) as Race)
+		MessageBox("Error: No free pet slot, PetCount = " + PetCount.GetValue() as Int + ", reverting")
+		akTarget.Enable()
+		petActor.Delete()
 		return
 	endIf
 
-	akTarget.StopCombat()
-	akTarget.SetPlayerTeammate(true, false)
-	akTarget.EvaluatePackage()
+	petActor.StopCombat()
+	petActor.SetPlayerTeammate(true, false)
+	petActor.EvaluatePackage()
 
 	PetCount.Mod(1)
 
 	TamedMessage[slotFilled].Show()
 
-	akTarget.RestoreActorValue("Health", 10000)
-	((self as Quest) as Mumirnik_Quest_Instincts_PetStats).ApplyPetStatMultipliers(akTarget)
+	petActor.RestoreActorValue("Health", 10000)
 	((self as Quest) as Mumirnik_Quest_Instincts_PetStats).SetHunger(akTarget, 50)
 	((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).InitTrainingProgression(akTarget)
 
@@ -78,18 +84,6 @@ endFunction
 
 function ReleasePet(Actor akTarget)
 {This releases your pet and clears the pet slot. Will throw if the pet is an invalid race or does not exist in a pet slot.}
-	int newRaceId = -1
-	newRaceId = PetRaceList.Find(akTarget.GetRace())
-	if (newRaceId == -1)
-		MessageBox("Error: Unknown actor race")
-		return
-	endIf
-
-	Race originalRace = OriginalRaceList.GetAt(newRaceId) as Race
-	akTarget.SetRace(originalRace)
-
-	((self as Quest) as Mumirnik_Quest_Instincts_PetStats).SetHunger(akTarget, 0)
-	
 	if (PetREF[0].GetReference() == akTarget)
 		PetREF[0].Clear()
 		PetHungerREF[0].Clear()
@@ -104,23 +98,25 @@ function ReleasePet(Actor akTarget)
 		return
 	endIf
 
-	akTarget.StopCombat()
-	akTarget.SetPlayerTeammate(false, false)
-	akTarget.EvaluatePackage()
+	akTarget.Delete()
+
+;	petActor.StopCombat()
+;	petActor.SetPlayerTeammate(false, false)
+;	petActor.EvaluatePackage()
 
 	PetCount.Mod(-1)
 
-	akTarget.RestoreActorValue("Health", 10000)
-	akTarget.SetActorValue("WaitingForPlayer", 0)
-	((self as Quest) as Mumirnik_Quest_Instincts_PetStats).RevertPetStatMultipliers(akTarget)
-	((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).UndoTrainingProgression(akTarget)
+;	akTarget.RestoreActorValue("Health", 10000)
+;	akTarget.SetActorValue("WaitingForPlayer", 0)
+;	((self as Quest) as Mumirnik_Quest_Instincts_PetStats).RevertPetStatMultipliers(akTarget)
+;	((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).UndoTrainingProgression(akTarget)
 
-	akTarget.RemoveSpell(HungerBuffSpell[0])
-	akTarget.RemoveSpell(HungerBuffSpell[1])
-	akTarget.RemoveSpell(HungerBuffSpell[2])
-	akTarget.RemoveSpell(HungerBuffSpell[3])
-	akTarget.RemoveSpell(HungerBuffSpell[4])
-	akTarget.RemoveSpell(HungerBuffSpell[5])
+;	akTarget.RemoveSpell(HungerBuffSpell[0])
+;	akTarget.RemoveSpell(HungerBuffSpell[1])
+;	akTarget.RemoveSpell(HungerBuffSpell[2])
+;	akTarget.RemoveSpell(HungerBuffSpell[3])
+;	akTarget.RemoveSpell(HungerBuffSpell[4])
+;	akTarget.RemoveSpell(HungerBuffSpell[5])
 
 	if (PetCount.GetValue() == 0 && TimerIsRunning)
 		TimerIsRunning = false
