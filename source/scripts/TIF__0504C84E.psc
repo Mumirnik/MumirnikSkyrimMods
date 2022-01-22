@@ -1,17 +1,14 @@
 ;BEGIN FRAGMENT CODE - Do not edit anything between this and the end comment
 ;NEXT FRAGMENT INDEX 1
-Scriptname TIF__0500AA28 Extends TopicInfo Hidden
+Scriptname TIF__0504C84E Extends TopicInfo Hidden
 
 ;BEGIN FRAGMENT Fragment_0
 Function Fragment_0(ObjectReference akSpeakerRef)
 Actor akSpeaker = akSpeakerRef as Actor
 ;BEGIN CODE
-CurrentPetIsEatingGlobal.SetValue(1)
-(GetOwningQuest() as Mumirnik_Quest_Instincts_Feeding).Feed(akSpeaker)
+(GetOwningQuest() as Mumirnik_Quest_Instincts_PetStats).ShowPetStats(akSpeaker)
 ;END CODE
 EndFunction
 ;END FRAGMENT
 
 ;END FRAGMENT CODE - Do not edit anything between this and the begin comment
-
-GlobalVariable Property CurrentPetIsEatingGlobal  Auto  

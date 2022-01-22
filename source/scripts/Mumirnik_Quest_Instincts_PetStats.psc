@@ -4,6 +4,7 @@ Scriptname Mumirnik_Quest_Instincts_PetStats extends Quest
 GlobalVariable property HungerDecayRateGlobal auto
 GlobalVariable property HungerDecayRateWhenWaitingGlobal auto
 GlobalVariable property PetCount auto
+Keyword property IsUnaggressivePetRace auto
 Message[] property HungerLimitMaxMessage auto
 Message[] property HungerLimitMinMessage auto
 Message[] property HungerChangeMessage auto
@@ -27,10 +28,14 @@ function ShowPetStats(Actor akTarget, int aiSlot = -1)
 	float petLevel = akTarget.GetActorValue(petLevelAVName)
 	float petLevelProgress = akTarget.GetActorValue(petLevelProgressAVName)
 	float petDamage = akTarget.GetActorValue("UnarmedDamage")
+	float petCarryWeight = 0
+	if (akTarget.HasKeyword(IsUnaggressivePetRace))
+		petCarryWeight = akTarget.GetActorValue("CarryWeight")
+	endIf
 	float petHealthMax = akTarget.GetActorValue("Health")
 	float petHungerModifier = akTarget.GetActorValue(HungerFortifyAVName)
 	float petExperienceModifier = akTarget.GetActorValue(ExperienceFortifyAVName)
-	PetStatisticsMessage[aiSlot].Show(petLevel, (petLevelProgress as int), (petLevelProgress - (petLevelProgress as int)) * 100, petDamage, petHealthMax, petHungerModifier, petExperienceModifier)
+	PetStatisticsMessage[aiSlot].Show(petLevel, (petLevelProgress as int), (petLevelProgress - (petLevelProgress as int)) * 100, petDamage, petCarryWeight, petHealthMax, petHungerModifier, petExperienceModifier)
 endFunction
 
 function UpdatePetStatsGameTime(Actor akTarget)
