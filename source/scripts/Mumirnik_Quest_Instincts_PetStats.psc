@@ -29,9 +29,7 @@ function ShowPetStats(Actor akTarget, int aiSlot = -1)
 	float petLevelProgress = akTarget.GetActorValue(petLevelProgressAVName)
 	float petDamage = akTarget.GetActorValue("UnarmedDamage")
 	float petCarryWeight = 0
-	if (akTarget.HasKeyword(IsUnaggressivePetRace))
-		petCarryWeight = akTarget.GetActorValue("CarryWeight")
-	endIf
+	petCarryWeight = akTarget.GetActorValue("CarryWeight")
 	float petHealthMax = akTarget.GetActorValue("Health")
 	float petHungerModifier = akTarget.GetActorValue(HungerFortifyAVName)
 	float petExperienceModifier = akTarget.GetActorValue(ExperienceFortifyAVName)

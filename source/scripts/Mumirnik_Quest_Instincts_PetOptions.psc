@@ -4,6 +4,7 @@ Scriptname Mumirnik_Quest_Instincts_PetOptions extends Quest
 import Debug
 import Utility
 
+Activator property PetNameBaseActivator auto
 Activator[] property PetHungerActivator auto
 {MUST be at least 6 items. Hunger progression is hardcoded.}
 ActorBase property EncWolfIce auto
@@ -14,8 +15,13 @@ FormList property OriginalRaceList auto
 {List of races that can be turned into pets.}
 FormList property PetActorList auto
 {List of pet actors.}
+FormList property PetNameF auto
+FormList property PetNameM auto
+FormList property PetNameUnaggressiveF auto
+FormList property PetNameUnaggressiveM auto
 GlobalVariable property PetCount auto
 {Current number of pets.}
+Keyword property IsUnaggressivePetRaceKeyword auto
 Message property ChanceToTame auto
 Message property ChanceToTameFAILED auto
 Message[] property TamedMessage auto
@@ -23,10 +29,13 @@ Message[] property TamedMessage auto
 Race property WolfRace auto
 {Used for special casing.}
 ReferenceAlias[] property PetREF auto
+ReferenceAlias[] property PetNameREF auto
 ReferenceAlias[] property PetHungerREF auto
 Sound property TamedSound auto
 Spell[] property HungerBuffSpell auto
 {MUST be at least 6 items. Hunger progression is hardcoded.}
+String property GenderAVName auto
+{M = 1, F = 2}
 
 bool TimerIsRunning = false
 Actor AnimalToTame = NONE
@@ -87,7 +96,6 @@ function MakePet(Actor akTarget)
 		slotFilled = 2
 	else
 		MessageBox("Error: No free pet slot, PetCount = " + PetCount.GetValue() as Int + ", reverting")
-		akTarget.Enable()
 		petActor.Delete()
 		return
 	endIf
@@ -105,6 +113,10 @@ function MakePet(Actor akTarget)
 	petActor.RestoreActorValue("Health", 10000)
 	((self as Quest) as Mumirnik_Quest_Instincts_PetStats).SetHunger(petActor, 50)
 	((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).InitTrainingProgression(petActor)
+
+	SetBaseNameDisplay(petActor)
+
+	petActor.AllowBleedoutDialogue(true)
 
 	if (!TimerIsRunning)
 		TimerIsRunning = true
@@ -132,6 +144,8 @@ function ReleasePet(Actor akTarget)
 
 	akTarget.Disable(true)
 	akTarget.Delete()
+
+	PetCount.Mod(-1)
 
 	if (PetCount.GetValue() == 0 && TimerIsRunning)
 		TimerIsRunning = false
@@ -179,6 +193,20 @@ ReferenceAlias function GetHungerRefForActor(Actor akTarget)
 		return PetHungerREF[2]
 	else
 		MessageBox("Error: Cannot find hunger ref for actor because target does not belong to any known pet slot")
+		return NONE
+	endIf
+endFunction
+
+ReferenceAlias function GetNameRefForActor(Actor akTarget)
+{Returns the name REF that is assocated with this actor. Throws if target is not in any pet slot.}
+	if (PetREF[0].GetReference() == akTarget)
+		return PetNameREF[0]
+	elseIf (PetREF[1].GetReference() == akTarget)
+		return PetNameREF[1]
+	elseIf (PetREF[2].GetReference() == akTarget)
+		return PetNameREF[2]
+	else
+		MessageBox("Error: Cannot find name ref for actor because target does not belong to any known pet slot")
 		return NONE
 	endIf
 endFunction
@@ -272,4 +300,53 @@ function RefreshHungerDisplay(Actor akTarget)
 	endIf
 	ObjectReference petHungerInstance = Game.GetPlayer().PlaceAtMe(petHungerType)
 	ThisPetHungerREF.ForceRefTo(petHungerInstance)	
+endFunction
+
+function SetBaseNameDisplay(Actor akTarget)
+{Sets the target's name to its base name.}
+	int gender = RandomInt(1,2)
+	akTarget.SetActorValue(GenderAVName, gender)
+
+	ReferenceAlias ThisPetNameREF = GetNameRefForActor(akTarget)
+	ObjectReference petNameInstance = Game.GetPlayer().PlaceAtMe(PetNameBaseActivator)
+	ThisPetNameREF.ForceRefTo(petNameInstance)
+endFunction
+
+function RerollNameDisplay(Actor akTarget)
+{Refreshes the target's name display randomly.}
+	ReferenceAlias ThisPetNameREF = GetNameRefForActor(akTarget)
+
+	ObjectReference petNameInstanceOld = ThisPetNameREF.GetReference()
+	ThisPetNameREF.ForceRefTo(NONE)
+	petNameInstanceOld.Delete()
+
+	Activator petNameType = NONE
+	int gender = akTarget.GetActorValue(GenderAVName) as int
+	if (!akTarget.HasKeyword(IsUnaggressivePetRaceKeyword))
+		if (gender == 1)
+			petNameType = PetNameM.GetAt(RandomInt(0, PetNameM.GetSize() - 1)) as Activator
+		elseIf (gender == 2)
+			petNameType = PetNameF.GetAt(RandomInt(0, PetNameM.GetSize() - 1)) as Activator
+		else
+			MessageBox("Error: Target has invalid gender")
+			return NONE
+		endIf
+	else
+		if (gender == 1)
+			petNameType = PetNameUnaggressiveM.GetAt(RandomInt(0, PetNameM.GetSize() - 1)) as Activator
+		elseIf (gender == 2)
+			petNameType = PetNameUnaggressiveF.GetAt(RandomInt(0, PetNameM.GetSize() - 1)) as Activator
+		else
+			MessageBox("Error: Target has invalid gender")
+			return NONE
+		endIf
+	endIf
+	ObjectReference petNameInstance = Game.GetPlayer().PlaceAtMe(petNameType)
+	ThisPetNameREF.ForceRefTo(petNameInstance)	
+endFunction
+
+function TurnToPlayer(Actor akTarget)
+{Turns the target to face the player.}
+	float zOffset = akTarget.GetHeadingAngle(Game.GetPlayer())
+	akTarget.SetAngle(akTarget.GetAngleX(), akTarget.GetAngleY(), akTarget.GetAngleZ() + zOffset)
 endFunction
