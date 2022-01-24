@@ -2,11 +2,13 @@ Scriptname Mumirnik_Quest_Instincts_PetOptions extends Quest
 {The guts of the pet system. Handles pet taming and releasing, and manages pet slots and the slot cap.}
 
 import Debug
+import Game
 import Utility
 
 Activator property PetNameBaseActivator auto
 Activator[] property PetHungerActivator auto
 {MUST be at least 6 items. Hunger progression is hardcoded.}
+Actor property PlayerREF auto
 ActorBase property EncWolfIce auto
 {Used for special casing.}
 ActorBase property EncWolfIcePet auto
@@ -15,15 +17,23 @@ FormList property OriginalRaceList auto
 {List of races that can be turned into pets.}
 FormList property PetActorList auto
 {List of pet actors.}
+FormList property PetPowerValuesList auto
+{The power for each pet race/original race.}
 FormList property PetNameF auto
 FormList property PetNameM auto
 FormList property PetNameUnaggressiveF auto
 FormList property PetNameUnaggressiveM auto
 GlobalVariable property PetCount auto
 {Current number of pets.}
+GlobalVariable property PetPower auto
+{Total amount of power among pets. Used to prevent stacking powerful pets.}
+GlobalVariable property PetPowerMax auto
+GlobalVariable property SpeechcraftExperienceGainTaming Auto
 Keyword property IsUnaggressivePetRaceKeyword auto
 Message property ChanceToTame auto
 Message property ChanceToTameFAILED auto
+Message property PetCountCheckFAILED auto
+Message property PetPowerCheckFAILED auto
 Message[] property TamedMessage auto
 {Shown when a pet is tamed.}
 Race property WolfRace auto
@@ -36,10 +46,46 @@ Spell[] property HungerBuffSpell auto
 {MUST be at least 6 items. Hunger progression is hardcoded.}
 String property GenderAVName auto
 {M = 1, F = 2}
+String property PowerAVName auto
+{Set on the pet to help with release and stats.}
 
 bool TimerIsRunning = false
 Actor AnimalToTame = NONE
 float TameChance = 0.0
+
+bool function CheckPowerBudget(Actor akTarget)
+{Returns whether the target can be made into a pet without exceeding the power budget. True if yes, false and error message if no.}
+	float playerSkill = PlayerREF.GetActorValue("Speechcraft")
+	if (playerSkill < 20)
+		PetPowerMax.SetValue(6)
+	elseIf (playerSkill < 40)
+		PetPowerMax.SetValue(7)
+	elseIf (playerSkill < 60)
+		PetPowerMax.SetValue(8)
+	elseIf (playerSkill < 80)
+		PetPowerMax.SetValue(9)
+	else
+		PetPowerMax.SetValue(10)
+	endIf
+
+	Race originalRace = akTarget.GetRace()
+	int originalRaceId = GetRaceIdForRace(originalRace)
+	int power = GetPowerForRaceId(originalRaceId)
+
+	int currentPetPower = PetPower.GetValue() as int
+	int currentPetPowerMax = PetPowerMax.GetValue() as int
+	if ((currentPetPower + power) > currentPetPowerMax)
+		PetPowerCheckFAILED.Show(currentPetPower, currentPetPowerMax, power)
+		return false
+	else
+		if (petCount.GetValue() == 3)
+			PetCountCheckFAILED.Show()
+			return false
+		else
+			return true
+		endIf
+	endIf
+endFunction
 
 function TryMakePet(Actor akTarget, float aiValue)
 {This is called from the taming feature. It is a thread safe way to make a target your pet.}
@@ -67,12 +113,7 @@ function MakePet(Actor akTarget)
 	akTarget.SetCriticalStage(akTarget.CritStage_DisintegrateEnd)
 
 	Race originalRace = akTarget.GetRace()
-	int originalRaceId = -1
-	originalRaceId = OriginalRaceList.Find(originalRace)
-	if (originalRaceId == -1)
-		MessageBox("Error: Unknown actor race")
-		return
-	endIf
+	int originalRaceId = GetRaceIdForRace(originalRace)
 
 	ActorBase newActorBase = PetActorList.GetAt(originalRaceId) as ActorBase
 	if (originalRace == WolfRace && akTarget.GetActorBase() == EncWolfIce)
@@ -106,17 +147,28 @@ function MakePet(Actor akTarget)
 	petActor.SetPlayerTeammate(true, false)
 	petActor.EvaluatePackage()
 
-	PetCount.Mod(1)
-
 	TamedMessage[slotFilled].Show()
 
 	petActor.RestoreActorValue("Health", 10000)
 	((self as Quest) as Mumirnik_Quest_Instincts_PetStats).SetHunger(petActor, 50)
-	((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).InitTrainingProgression(petActor)
+	((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).InitTrainingProgression(petActor, originalRaceId)
 
 	SetBaseNameDisplay(petActor)
 
+	PetCount.Mod(1)
+	int power = GetPowerForRaceId(originalRaceId)
+	PetPower.Mod(power)
+	petActor.SetActorValue(PowerAVName, power)
+
+	if (PetPower.GetValue() > PetPowerMax.GetValue())
+		MessageBox("Error: Pet power overflow, this should not happen at this point! Releasing new pet")
+		ReleasePet(petActor)
+		return
+	endIf
+
 	petActor.AllowBleedoutDialogue(true)
+
+	AdvanceSkill("Speechcraft", SpeechcraftExperienceGainTaming.GetValue())
 
 	if (!TimerIsRunning)
 		TimerIsRunning = true
@@ -142,10 +194,13 @@ function ReleasePet(Actor akTarget)
 		return
 	endIf
 
-	akTarget.Disable(true)
-	akTarget.Delete()
+	Race originalRace = akTarget.GetRace()
 
 	PetCount.Mod(-1)
+	PetPower.Mod(-akTarget.GetActorValue(PowerAVName))
+
+	akTarget.Disable(true)
+	akTarget.Delete()
 
 	if (PetCount.GetValue() == 0 && TimerIsRunning)
 		TimerIsRunning = false
@@ -345,8 +400,23 @@ function RerollNameDisplay(Actor akTarget)
 	ThisPetNameREF.ForceRefTo(petNameInstance)	
 endFunction
 
+int function GetPowerForRaceId(int aiRaceId)
+{Returns the power for a given race ID.}
+	return (PetPowerValuesList.GetAt(aiRaceId) as GlobalVariable).GetValue() as int
+endFunction
+
+int function GetRaceIdForRace(Race akRace)
+{Returns the original race ID for a given actor race.}
+	int originalRaceId = -1
+	originalRaceId = OriginalRaceList.Find(akRace)
+	if (originalRaceId == -1)
+		MessageBox("Error: Unknown actor race")
+	endIf
+	return originalRaceId
+endFunction
+
 function TurnToPlayer(Actor akTarget)
 {Turns the target to face the player.}
-	float zOffset = akTarget.GetHeadingAngle(Game.GetPlayer())
+	float zOffset = akTarget.GetHeadingAngle(PlayerREF)
 	akTarget.SetAngle(akTarget.GetAngleX(), akTarget.GetAngleY(), akTarget.GetAngleZ() + zOffset)
 endFunction

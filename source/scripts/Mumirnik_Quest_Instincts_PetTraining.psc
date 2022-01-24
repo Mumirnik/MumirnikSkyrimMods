@@ -2,8 +2,12 @@ Scriptname Mumirnik_Quest_Instincts_PetTraining extends Quest
 {Handles pet training and progression. Exposes functions to initialize progression, train the pet, and undo all progression.}
 
 import Debug
+import Game
 
 Actor property PlayerREF auto
+FormList property PetLevelsList auto
+{The level for each pet race/original race.}
+GlobalVariable property SpeechcraftExperienceGainTraining auto
 GlobalVariable property TrainingIncrementAttackDamageGlobal auto
 GlobalVariable property TrainingIncrementHealthGlobal auto
 GlobalVariable property TrainingIncrementHungerFortifyGlobal auto
@@ -24,10 +28,11 @@ string property PetLevelProgressAVName auto
 string property PetLevelAvailableFlagAVName auto
 {The name of the actor value that flags the target pet as being able to level up.}
 
-function InitTrainingProgression(Actor akTarget)
+function InitTrainingProgression(Actor akTarget, int aiRaceId)
 {Initializes training progression when the animal is tamed.}
-	akTarget.SetActorValue(PetLevelAVName, 1.0)
-	akTarget.SetActorValue(PetLevelProgressAVName, 1.0)
+	int level = (PetLevelsList.GetAt(aiRaceId) as GlobalVariable).GetValue() as int
+	akTarget.SetActorValue(PetLevelAVName, level)
+	akTarget.SetActorValue(PetLevelProgressAVName, level)
 	akTarget.SetActorValue(PetLevelAvailableFlagAVName, 0.0)
 endFunction
 
@@ -102,6 +107,7 @@ function Train(Actor akTarget)
 
 		if (petLevelAdd > 0)
 			akTarget.ModActorValue(PetLevelAVName, petLevelAdd)
+			AdvanceSkill("Speechcraft", SpeechcraftExperienceGainTraining.GetValue() * petLevelAdd)
 		endIf
 		if (petDamageAdd > 0)
 			akTarget.ModActorValue("UnarmedDamage", petDamageAdd)
@@ -135,11 +141,16 @@ function Progress(Actor akTarget, float afValue)
 		return
 	endIf
 
+	float petLevel = akTarget.GetActorValue(PetLevelAVName)
+	float playerLevel = PlayerREF.GetLevel()
+	if (petLevel >= playerLevel)
+		return
+	endIf
+
 	string experienceFortifyAVName = ((self as Quest) as Mumirnik_Quest_Instincts_PetStats).ExperienceFortifyAVName
 	float value = afValue * (100 + akTarget.GetActorValue(experienceFortifyAVName)) / 100
 
 	float oldPetLevelProgress = akTarget.GetActorValue(PetLevelProgressAVName)
-	float playerLevel = PlayerREF.GetLevel()
 	if (value > playerLevel - oldPetLevelProgress)
 		value = playerLevel - oldPetLevelProgress
 	endIf
@@ -155,7 +166,6 @@ debug.messagebox("old " + oldPetLevelProgress + " new " + newPetLevelProgress + 
 
 	akTarget.ModActorValue(PetLevelProgressAVName, value)
 
-	float petLevel = akTarget.GetActorValue(PetLevelAVName)
 	if ((petLevel as int) < (newPetLevelProgress as int))
 		akTarget.SetActorValue(PetLevelAvailableFlagAVName, 1.0)
 	else

@@ -8,7 +8,8 @@ Keyword property IsUnaggressivePetRace auto
 Message[] property HungerLimitMaxMessage auto
 Message[] property HungerLimitMinMessage auto
 Message[] property HungerChangeMessage auto
-Message[] property PetStatisticsMessage auto
+Message[] property PetStatisticsMessageF auto
+Message[] property PetStatisticsMessageM auto
 string property HungerAVName auto
 {The name of the actor value that tracks Hunger.}
 string property HungerFortifyAVName auto
@@ -25,15 +26,21 @@ function ShowPetStats(Actor akTarget, int aiSlot = -1)
 	endIf
 	string petLevelAVName = ((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).PetLevelAVName
 	string petLevelProgressAVName = ((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).PetLevelProgressAVName
+	string petGenderAVName = ((self as Quest) as Mumirnik_Quest_Instincts_PetOptions).GenderAVName
+	string petPowerAVName = ((self as Quest) as Mumirnik_Quest_Instincts_PetOptions).PowerAVName
 	float petLevel = akTarget.GetActorValue(petLevelAVName)
 	float petLevelProgress = akTarget.GetActorValue(petLevelProgressAVName)
 	float petDamage = akTarget.GetActorValue("UnarmedDamage")
-	float petCarryWeight = 0
-	petCarryWeight = akTarget.GetActorValue("CarryWeight")
+	float petCarryWeight = akTarget.GetActorValue("CarryWeight")
 	float petHealthMax = akTarget.GetActorValue("Health")
 	float petHungerModifier = akTarget.GetActorValue(HungerFortifyAVName)
 	float petExperienceModifier = akTarget.GetActorValue(ExperienceFortifyAVName)
-	PetStatisticsMessage[aiSlot].Show(petLevel, (petLevelProgress as int), (petLevelProgress - (petLevelProgress as int)) * 100, petDamage, petCarryWeight, petHealthMax, petHungerModifier, petExperienceModifier)
+	float petPower = akTarget.GetActorValue(petPowerAVName)
+	if (akTarget.GetActorValue(petGenderAVName) == 2)
+		PetStatisticsMessageF[aiSlot].Show(petLevel, (petLevelProgress as int), (petLevelProgress - (petLevelProgress as int)) * 100, petDamage, petCarryWeight, petHealthMax, petHungerModifier, petExperienceModifier, petPower)
+	else
+		PetStatisticsMessageM[aiSlot].Show(petLevel, (petLevelProgress as int), (petLevelProgress - (petLevelProgress as int)) * 100, petDamage, petCarryWeight, petHealthMax, petHungerModifier, petExperienceModifier, petPower)
+	endIf
 endFunction
 
 function UpdatePetStatsGameTime(Actor akTarget)
