@@ -4,7 +4,8 @@ Scriptname Mumirnik_Efect_Instincts_ForceTame extends activemagiceffect
 Quest property PetOptionsQuest  auto
 
 event OnEffectStart(Actor akTarget, Actor akCaster)
-
-	(PetOptionsQuest as Mumirnik_Quest_Instincts_PetOptions).MakePet(akTarget)
-
+	bool meetsPowerBudget = (PetOptionsQuest as Mumirnik_Quest_Instincts_PetOptions).CheckPowerBudget(akTarget)
+	if (meetsPowerBudget)
+			(PetOptionsQuest as Mumirnik_Quest_Instincts_PetOptions).MakePet(akTarget)
+	endIf
 endEvent

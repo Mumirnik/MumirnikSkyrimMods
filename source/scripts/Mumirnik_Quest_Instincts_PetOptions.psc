@@ -166,7 +166,7 @@ function MakePet(Actor akTarget)
 		return
 	endIf
 
-	petActor.AllowBleedoutDialogue(true)
+	;petActor.AllowBleedoutDialogue(true)
 
 	AdvanceSkill("Speechcraft", SpeechcraftExperienceGainTaming.GetValue())
 
