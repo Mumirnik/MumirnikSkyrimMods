@@ -7,6 +7,7 @@ Function Fragment_0(ObjectReference akSpeakerRef)
 Actor akSpeaker = akSpeakerRef as Actor
 ;BEGIN CODE
 akSpeaker.SetActorValue("HeavyArmorSkillAdvance", 0)
+akSpeaker.SetActorValue("WaitingForPlayer", 0)
 akSpeaker.EvaluatePackage()
 ;END CODE
 EndFunction

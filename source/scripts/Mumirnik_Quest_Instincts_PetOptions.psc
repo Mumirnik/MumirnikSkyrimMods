@@ -353,7 +353,7 @@ function RefreshHungerDisplay(Actor akTarget)
 	else
 		petHungerType = PetHungerActivator[5]
 	endIf
-	ObjectReference petHungerInstance = Game.GetPlayer().PlaceAtMe(petHungerType)
+	ObjectReference petHungerInstance = PlayerREF.PlaceAtMe(petHungerType)
 	ThisPetHungerREF.ForceRefTo(petHungerInstance)	
 endFunction
 
