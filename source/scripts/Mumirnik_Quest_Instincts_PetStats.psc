@@ -45,19 +45,25 @@ endFunction
 
 function UpdatePetStatsGameTime(Actor akTarget)
 {Ticks every hour on each pet. Handles hunger decay and experience growth.}
-	bool isWaiting = (akTarget.GetActorValue("WaitingForPlayer") == 1)
-	float hungerDecay = 0
+	bool isWaiting = (akTarget.GetActorValue("WaitingForPlayer") > 0.0)
+	float hungerDecay = 0.0
 	if (isWaiting)
 		hungerDecay = HungerDecayRateWhenWaitingGlobal.GetValue()
 	else
 		hungerDecay = HungerDecayRateGlobal.GetValue()
 	endIf
-	hungerDecay *= ((100 - akTarget.GetActorValue(HungerFortifyAVName)) / 100)
+	hungerDecay *= ((100.0 - akTarget.GetActorValue(HungerFortifyAVName)) / 100.0)
 	ModHunger(akTarget, -hungerDecay)
 
 	string petLevelAVName = ((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).PetLevelAVName
 	int petLevel = akTarget.GetActorValue(petLevelAVName) as int
 	float progressAmount = 1.0 / (petLevel + 1.0)
+	float hunger = akTarget.GetActorValue(HungerAVName)
+	if (hunger > 0)
+		progressAmount = (progressAmount * hunger) / 100.0
+	else
+		progressAmount = 0
+	endIf
 	((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).Progress(akTarget, progressAmount)
 endFunction
 
@@ -76,7 +82,7 @@ function ModHunger(Actor akTarget, float aiValue)
 	float value = akTarget.GetActorValue(HungerAVName)
 	if (value < 0)
 		akTarget.ModActorValue(HungerAVName, -value)
-		if (akTarget.GetActorValue("WaitingForPlayer") == 1 && !StarvationWarningTriggered)
+		if (akTarget.GetActorValue("WaitingForPlayer") > 0 && !StarvationWarningTriggered)
 			int slotNumber = ((self as Quest) as Mumirnik_Quest_Instincts_PetOptions).GetSlotNumberForActor(akTarget)
 			HungerLimitMinMessage[slotNumber].Show()
 			StarvationWarningTriggered = true
