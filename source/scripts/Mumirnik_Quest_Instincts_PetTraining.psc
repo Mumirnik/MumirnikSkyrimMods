@@ -128,8 +128,7 @@ function Train(Actor akTarget)
 			akTarget.SetActorValue(PetLevelAvailableFlagAVName, 0.0)
 		endIf
 
-Debug.MessageBox("After training: Level " + akTarget.GetActorValue(PetLevelAVName) + ", available: " + akTarget.GetActorValue(PetLevelAvailableFlagAVName) + ", progression: " + akTarget.GetActorValue(PetLevelProgressAVName))
-
+;		MessageBox("After training: Level " + akTarget.GetActorValue(PetLevelAVName) + ", available: " + akTarget.GetActorValue(PetLevelAvailableFlagAVName) + ", progression: " + akTarget.GetActorValue(PetLevelProgressAVName))
 ;		((self as Quest) as Mumirnik_Quest_Instincts_PetStats).ShowPetStats(akTarget, slotNumber)
 	endIf
 endFunction
@@ -156,7 +155,7 @@ function Progress(Actor akTarget, float afValue)
 	endIf
 
 	float newPetLevelProgress = oldPetLevelProgress + value
-debug.messagebox("old " + oldPetLevelProgress + " new " + newPetLevelProgress + " value " + value)
+	;MessageBox("Level progress: Old: " + oldPetLevelProgress + ", new: " + newPetLevelProgress + ", value: " + value)
 	if ((oldPetLevelProgress as int) < (newPetLevelProgress as int))
 		int slotNumber = ((self as Quest) as Mumirnik_Quest_Instincts_PetOptions).GetSlotNumberForActor(akTarget)
 		if (slotNumber != -1)
