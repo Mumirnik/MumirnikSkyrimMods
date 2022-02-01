@@ -11,11 +11,16 @@ Activator[] property PetHungerActivator auto
 Actor property PlayerREF auto
 ActorBase property EncWolfIce auto
 {Used for special casing.}
-ActorBase property EncWolfIcePet auto
+ActorBase property EncWolfIcePetF auto
+{Used for special casing.}
+ActorBase property EncWolfIcePetM auto
 {Used for special casing.}
 FormList property OriginalRaceList auto
 {List of races that can be turned into pets.}
-FormList property PetActorList auto
+;FormList property PetActorList auto
+FormList property PetActorListM auto
+{List of pet actors.}
+FormList property PetActorListF auto
 {List of pet actors.}
 FormList property PetPowerValuesList auto
 {The power for each pet race/original race.}
@@ -36,6 +41,14 @@ Message property PetCountCheckFAILED auto
 Message property PetPowerCheckFAILED auto
 Message[] property TamedMessage auto
 {Shown when a pet is tamed.}
+Race[] property ForcedFemaleRaceList auto
+{Original races in this list will always become female.}
+Race[] property ForcedMaleRaceList auto
+{Original races in this list will always become male.}
+Race[] property ForcedRandomGenderMaleVisualsRaceList auto
+{Original races in this list will become a random gender, but will use male visuals.}
+Race[] property ForcedRandomGenderRaceList auto
+{Original races in this list will become a random gender and get the appropriate visuals.}
 Race property WolfRace auto
 {Used for special casing.}
 ReferenceAlias[] property PetREF auto
@@ -115,9 +128,32 @@ function MakePet(Actor akTarget)
 	Race originalRace = akTarget.GetRace()
 	int originalRaceId = GetRaceIdForRace(originalRace)
 
-	ActorBase newActorBase = PetActorList.GetAt(originalRaceId) as ActorBase
+	int gender = 0
+	if (ForcedFemaleRaceList.Find(originalRace) != -1)
+		gender = 2	; because chickens and cows are apparently male in vanilla
+	elseIf (ForcedMaleRaceList.Find(originalRace) != -1)
+		gender = 1
+	elseIf (ForcedRandomGenderRaceList.Find(originalRace) != -1 || ForcedRandomGenderMaleVisualsRaceList.Find(originalRace) != -1)
+		gender = RandomInt(1,2)
+	else
+		gender = akTarget.GetLeveledActorBase().GetSex() + 1
+	endIf
+
+	ActorBase newActorBase = NONE
+	if (gender == 1 || ForcedRandomGenderMaleVisualsRaceList.Find(originalRace) != -1)
+		newActorBase = PetActorListM.GetAt(originalRaceId) as ActorBase
+	elseIf (gender == 2)
+		newActorBase = PetActorListF.GetAt(originalRaceId) as ActorBase
+	else
+		MessageBox("Error: Unknown gender")
+	endIf
+
 	if (originalRace == WolfRace && akTarget.GetActorBase() == EncWolfIce)
-		newActorBase = EncWolfIcePet ; special case for ice wolves which do not have a custom race but do have higher stats
+		if (gender == 1 || ForcedRandomGenderMaleVisualsRaceList.Find(originalRace) != -1)
+			newActorBase = EncWolfIcePetM ; special case for ice wolves which do not have a custom race but do have higher stats
+		elseIf (gender == 2)
+			newActorBase = EncWolfIcePetF ; special case for ice wolves which do not have a custom race but do have higher stats
+		endIf
 	endIf
 	
 	Actor petActor = akTarget.PlaceActorAtMe(newActorBase)
@@ -153,7 +189,7 @@ function MakePet(Actor akTarget)
 	((self as Quest) as Mumirnik_Quest_Instincts_PetStats).SetHunger(petActor, 50)
 	((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).InitTrainingProgression(petActor, originalRaceId)
 
-	SetBaseNameDisplay(petActor)
+	SetBaseNameDisplay(petActor, gender)
 
 	PetCount.Mod(1)
 	int power = GetPowerForRaceId(originalRaceId)
@@ -357,10 +393,9 @@ function RefreshHungerDisplay(Actor akTarget)
 	ThisPetHungerREF.ForceRefTo(petHungerInstance)	
 endFunction
 
-function SetBaseNameDisplay(Actor akTarget)
+function SetBaseNameDisplay(Actor akTarget, int aiGender)
 {Sets the target's name to its base name.}
-	int gender = RandomInt(1,2)
-	akTarget.SetActorValue(GenderAVName, gender)
+	akTarget.SetActorValue(GenderAVName, aiGender)
 
 	ReferenceAlias ThisPetNameREF = GetNameRefForActor(akTarget)
 	ObjectReference petNameInstance = Game.GetPlayer().PlaceAtMe(PetNameBaseActivator)
