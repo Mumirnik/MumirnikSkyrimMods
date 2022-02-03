@@ -9,12 +9,9 @@ Activator property PetNameBaseActivator auto
 Activator[] property PetHungerActivator auto
 {MUST be at least 6 items. Hunger progression is hardcoded.}
 Actor property PlayerREF auto
-ActorBase property EncWolfIce auto
-{Used for special casing.}
-ActorBase property EncWolfIcePetF auto
-{Used for special casing.}
-ActorBase property EncWolfIcePetM auto
-{Used for special casing.}
+ActorBase[] property RaceSubstituteOriginalActorBaseList auto
+ActorBase[] property RaceSubstituteActorListF auto
+ActorBase[] property RaceSubstituteActorListM auto
 FormList property OriginalRaceList auto
 {List of races that can be turned into pets.}
 ;FormList property PetActorList auto
@@ -38,6 +35,7 @@ Keyword property IsUnaggressivePetRaceKeyword auto
 Message property ChanceToTame auto
 Message property ChanceToTameFAILED auto
 Message property PetCountCheckFAILED auto
+Message property PetEssentialCheckFAILED auto
 Message property PetPowerCheckFAILED auto
 Message[] property TamedMessage auto
 {Shown when a pet is tamed.}
@@ -49,8 +47,6 @@ Race[] property ForcedRandomGenderMaleVisualsRaceList auto
 {Original races in this list will become a random gender, but will use male visuals.}
 Race[] property ForcedRandomGenderRaceList auto
 {Original races in this list will become a random gender and get the appropriate visuals.}
-Race property WolfRace auto
-{Used for special casing.}
 ReferenceAlias[] property PetREF auto
 ReferenceAlias[] property PetNameREF auto
 ReferenceAlias[] property PetHungerREF auto
@@ -68,6 +64,11 @@ float TameChance = 0.0
 
 bool function CheckPowerBudget(Actor akTarget)
 {Returns whether the target can be made into a pet without exceeding the power budget. True if yes, false and error message if no.}
+;	if (akTarget.IsEssential() || (akTarget.GetBaseObject() as ActorBase).IsProtected())
+;		PetEssentialCheckFAILED.Show()
+;		return false
+;	endIf
+
 	float playerSkill = PlayerREF.GetActorValue("Speechcraft")
 	if (playerSkill < 20)
 		PetPowerMax.SetValue(6)
@@ -128,19 +129,21 @@ function MakePet(Actor akTarget)
 	Race originalRace = akTarget.GetRace()
 	int originalRaceId = GetRaceIdForRace(originalRace)
 
+	bool isForcedRandomGenderMaleVisuals = (ForcedRandomGenderMaleVisualsRaceList.Find(originalRace) != -1)
+
 	int gender = 0
 	if (ForcedFemaleRaceList.Find(originalRace) != -1)
 		gender = 2	; because chickens and cows are apparently male in vanilla
 	elseIf (ForcedMaleRaceList.Find(originalRace) != -1)
 		gender = 1
-	elseIf (ForcedRandomGenderRaceList.Find(originalRace) != -1 || ForcedRandomGenderMaleVisualsRaceList.Find(originalRace) != -1)
+	elseIf (ForcedRandomGenderRaceList.Find(originalRace) != -1 || isForcedRandomGenderMaleVisuals)
 		gender = RandomInt(1,2)
 	else
 		gender = akTarget.GetLeveledActorBase().GetSex() + 1
 	endIf
 
 	ActorBase newActorBase = NONE
-	if (gender == 1 || ForcedRandomGenderMaleVisualsRaceList.Find(originalRace) != -1)
+	if (gender == 1 || isForcedRandomGenderMaleVisuals)
 		newActorBase = PetActorListM.GetAt(originalRaceId) as ActorBase
 	elseIf (gender == 2)
 		newActorBase = PetActorListF.GetAt(originalRaceId) as ActorBase
@@ -148,11 +151,21 @@ function MakePet(Actor akTarget)
 		MessageBox("Error: Unknown gender")
 	endIf
 
-	if (originalRace == WolfRace && akTarget.GetActorBase() == EncWolfIce)
-		if (gender == 1 || ForcedRandomGenderMaleVisualsRaceList.Find(originalRace) != -1)
-			newActorBase = EncWolfIcePetM ; special case for ice wolves which do not have a custom race but do have higher stats
+	ActorBase targetActorBase = akTarget.GetActorBase()
+	int raceSubstituteActorBaseId = RaceSubstituteOriginalActorBaseList.Find(targetActorBase)
+	if (raceSubstituteActorBaseId != -1)
+		if (gender == 1 || isForcedRandomGenderMaleVisuals)
+			newActorBase = RaceSubstituteActorListM[raceSubstituteActorBaseId]
+			originalRaceId = PetActorListM.Find(newActorBase)
+			if (originalRaceId == -1)
+				MessageBox("Error: No original race for this race substitution")
+			endIf
 		elseIf (gender == 2)
-			newActorBase = EncWolfIcePetF ; special case for ice wolves which do not have a custom race but do have higher stats
+			newActorBase = RaceSubstituteActorListF[raceSubstituteActorBaseId]
+			originalRaceId = PetActorListF.Find(newActorBase)
+			if (originalRaceId == -1)
+				MessageBox("Error: No original race for this race substitution")
+			endIf
 		endIf
 	endIf
 	
@@ -177,7 +190,7 @@ function MakePet(Actor akTarget)
 		return
 	endIf
 
-	akTarget.Kill()
+	akTarget.Kill(PlayerREF)
 
 	petActor.StopCombat()
 	petActor.SetPlayerTeammate(true, false)

@@ -128,8 +128,8 @@ function Train(Actor akTarget)
 			akTarget.SetActorValue(PetLevelAvailableFlagAVName, 0.0)
 		endIf
 
-;		MessageBox("After training: Level " + akTarget.GetActorValue(PetLevelAVName) + ", available: " + akTarget.GetActorValue(PetLevelAvailableFlagAVName) + ", progression: " + akTarget.GetActorValue(PetLevelProgressAVName))
-;		((self as Quest) as Mumirnik_Quest_Instincts_PetStats).ShowPetStats(akTarget, slotNumber)
+		;MessageBox("After training: Level " + akTarget.GetActorValue(PetLevelAVName) + ", available: " + akTarget.GetActorValue(PetLevelAvailableFlagAVName) + ", progression: " + akTarget.GetActorValue(PetLevelProgressAVName))
+		;((self as Quest) as Mumirnik_Quest_Instincts_PetStats).ShowPetStats(akTarget, slotNumber)
 	endIf
 endFunction
 

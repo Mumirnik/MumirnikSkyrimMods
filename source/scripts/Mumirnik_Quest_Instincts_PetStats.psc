@@ -14,6 +14,8 @@ string property HungerAVName auto
 {The name of the actor value that tracks Hunger.}
 string property HungerFortifyAVName auto
 {The name of the actor value for Fortify Hunger effects.}
+string property MountedSpeedAVName auto
+{The name of the actor value for Mounted Speed effects.}
 string property ExperienceFortifyAVName auto
 {The name of the actor value for Fortify Experience effects.}
 
