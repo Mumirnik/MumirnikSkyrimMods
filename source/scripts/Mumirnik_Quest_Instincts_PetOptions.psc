@@ -12,6 +12,7 @@ Actor property PlayerREF auto
 ActorBase[] property RaceSubstituteOriginalActorBaseList auto
 ActorBase[] property RaceSubstituteActorListF auto
 ActorBase[] property RaceSubstituteActorListM auto
+FormList property NewRaceList auto
 FormList property OriginalRaceList auto
 {List of races that can be turned into pets.}
 ;FormList property PetActorList auto
@@ -30,7 +31,7 @@ GlobalVariable property PetCount auto
 GlobalVariable property PetPower auto
 {Total amount of power among pets. Used to prevent stacking powerful pets.}
 GlobalVariable property PetPowerMax auto
-GlobalVariable property SpeechcraftExperienceGainTaming Auto
+GlobalVariable property SpeechcraftExperienceGainTaming auto
 Keyword property IsUnaggressivePetRaceKeyword auto
 Message property ChanceToTame auto
 Message property ChanceToTameFAILED auto
@@ -39,6 +40,7 @@ Message property PetEssentialCheckFAILED auto
 Message property PetPowerCheckFAILED auto
 Message[] property TamedMessage auto
 {Shown when a pet is tamed.}
+Perk property PowerMaxPerk auto
 Race[] property ForcedFemaleRaceList auto
 {Original races in this list will always become female.}
 Race[] property ForcedMaleRaceList auto
@@ -70,21 +72,29 @@ bool function CheckPowerBudget(Actor akTarget)
 ;	endIf
 
 	float playerSkill = PlayerREF.GetActorValue("Speechcraft")
+	int powerMax = 0
 	if (playerSkill < 20)
-		PetPowerMax.SetValue(6)
+		powerMax = 6
 	elseIf (playerSkill < 40)
-		PetPowerMax.SetValue(7)
+		powerMax = 7
 	elseIf (playerSkill < 60)
-		PetPowerMax.SetValue(8)
+		powerMax = 8
 	elseIf (playerSkill < 80)
-		PetPowerMax.SetValue(9)
+		powerMax = 9
 	else
-		PetPowerMax.SetValue(10)
+		powerMax = 10
 	endIf
+	if (PlayerREF.HasPerk(PowerMaxPerk))
+		powerMax += 1
+	endIf
+	PetPowerMax.SetValue(powerMax)
 
 	Race originalRace = akTarget.GetRace()
 	int originalRaceId = GetRaceIdForRace(originalRace)
 	int power = GetPowerForRaceId(originalRaceId)
+	if (originalRaceId == -1 || power == -1)
+		Notification("Error: Invalid original race")
+	endIf
 
 	int currentPetPower = PetPower.GetValue() as int
 	int currentPetPowerMax = PetPowerMax.GetValue() as int
@@ -461,6 +471,15 @@ int function GetRaceIdForRace(Race akRace)
 		MessageBox("Error: Unknown actor race")
 	endIf
 	return originalRaceId
+endFunction
+
+int function GetRaceIdForTamedAnimal(Actor akTarget)
+	int actorId = NewRaceList.Find(akTarget.GetRace())
+	if (actorId == -1)
+		MessageBox("Error: Unknown actor")
+		return -1
+	endIf
+	return actorId
 endFunction
 
 function TurnToPlayer(Actor akTarget)

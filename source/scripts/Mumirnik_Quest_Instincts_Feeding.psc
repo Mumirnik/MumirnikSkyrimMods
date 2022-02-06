@@ -19,14 +19,7 @@ Sound property EatSound auto
 
 function Feed(Actor akTarget)
 {Open the inventory dialog box to feed target pet. Will throw if the pet is an invalid race or does not have a food list.}
-	FormList petActorList = ((self as Quest) as Mumirnik_Quest_Instincts_PetOptions).PetActorList
-	int actorId = -1
-	actorId = petActorList.Find(akTarget.GetActorBase())
-	if (actorId == -1)
-		MessageBox("Error: Unknown actor")
-		return
-	endIf
-
+	int actorId = ((self as Quest) as Mumirnik_Quest_Instincts_PetOptions).GetRaceIdForTamedAnimal(akTarget)
 	FormList foodListForActor = FoodList.GetAt(actorId) as FormList
 	if (!foodListForActor)
 		MessageBox("Error: No food list for actor")
