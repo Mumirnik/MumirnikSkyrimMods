@@ -12,15 +12,16 @@ float property GoldToHungerPotionAdd auto
 float property GoldToHungerPotionMult auto
 {This is multiplied by the gold cost of a potion to determine its hunger restore.}
 FormList property EmptyList auto
+FormList property FoodSublists auto
+FormList property FoodTypes auto
 FormList property FullList auto
-FormList property FoodList auto
-{List of pet races corresponding 1:1 to original races in PetOptions.}
 Sound property EatSound auto
 
 function Feed(Actor akTarget)
 {Open the inventory dialog box to feed target pet. Will throw if the pet is an invalid race or does not have a food list.}
 	int actorId = ((self as Quest) as Mumirnik_Quest_Instincts_PetOptions).GetRaceIdForTamedAnimal(akTarget)
-	FormList foodListForActor = FoodList.GetAt(actorId) as FormList
+	GlobalVariable foodType = FoodTypes.GetAt(actorId) as GlobalVariable
+	FormList foodListForActor = FoodSublists.GetAt(foodType.GetValue() as int) as FormList
 	if (!foodListForActor)
 		MessageBox("Error: No food list for actor")
 		return
@@ -40,7 +41,8 @@ FormList function GetFoodListForOriginalRace(Actor akTarget)
 		return EmptyList
 	endIf
 
-	FormList foodListForRace = FoodList.GetAt(raceId) as FormList
+	GlobalVariable foodType = FoodTypes.GetAt(raceId) as GlobalVariable
+	FormList foodListForRace = FoodSublists.GetAt(foodType.GetValue() as int) as FormList
 	if (!foodListForRace)
 		return FullList
 	endIf

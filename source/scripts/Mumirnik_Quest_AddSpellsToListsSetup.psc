@@ -20,6 +20,7 @@ event OnInit()
 endEvent
 
 event OnUpdate()
+	Trace("Start spell injection", 0)
 	if (SpellTomesList.Length != SpellTomesLootItemsList.Length || SpellStavesList.Length != SpellStavesLootItemsList.Length || SpellScrollsList.Length != SpellScrollsLootItemsList.Length)
 		MessageBox("Error: Spell lists don't have the same length, spells will not be added to leveled items")
 		return
@@ -44,5 +45,5 @@ event OnUpdate()
 		SpellTomesSpecialFormListsList[l].AddForm(SpellTomesSpecialList[l])
 		l += 1
 	endWhile
-
+	Trace("Finish spell injection", 0)
 endEvent
