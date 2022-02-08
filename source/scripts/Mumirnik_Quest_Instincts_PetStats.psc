@@ -55,17 +55,20 @@ function UpdatePetStatsGameTime(Actor akTarget)
 		hungerDecay = HungerDecayRateGlobal.GetValue()
 	endIf
 	hungerDecay *= ((100.0 - akTarget.GetActorValue(HungerFortifyAVName)) / 100.0)
+	if (hungerDecay < 0)
+		hungerDecay = 0
+	endIf
 	ModHunger(akTarget, -hungerDecay)
 
 	string petLevelAVName = ((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).PetLevelAVName
 	int petLevel = akTarget.GetActorValue(petLevelAVName) as int
 	float progressAmount = 1.0 / (petLevel + 1.0)
-	float hunger = akTarget.GetActorValue(HungerAVName)
-	if (hunger > 0)
-		progressAmount = (progressAmount * hunger) / 100.0
-	else
-		progressAmount = 0
-	endIf
+;	float hunger = akTarget.GetActorValue(HungerAVName)
+;	if (hunger > 0)
+;		progressAmount = (progressAmount * hunger) / 100.0
+;	else
+;		progressAmount = 0
+;	endIf
 	((self as Quest) as Mumirnik_Quest_Instincts_PetTraining).Progress(akTarget, progressAmount)
 endFunction
 
