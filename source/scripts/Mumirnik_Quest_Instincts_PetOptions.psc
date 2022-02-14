@@ -161,7 +161,7 @@ function MakePet(Actor akTarget)
 		MessageBox("Error: Unknown gender")
 	endIf
 
-	ActorBase targetActorBase = akTarget.GetActorBase()
+	ActorBase targetActorBase = akTarget.GetLeveledActorBase()
 	int raceSubstituteActorBaseId = RaceSubstituteOriginalActorBaseList.Find(targetActorBase)
 	if (raceSubstituteActorBaseId != -1)
 		if (gender == 1 || isForcedRandomGenderMaleVisuals)
