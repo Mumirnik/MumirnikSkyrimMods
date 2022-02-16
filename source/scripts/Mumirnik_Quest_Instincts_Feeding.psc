@@ -27,8 +27,10 @@ function Feed(Actor akTarget)
 		return
 	endIf
 
+	akTarget.ModActorValue("CarryWeight", 100)
 	akTarget.AddInventoryEventFilter(foodListForActor)
 	akTarget.ShowGiftMenu(true, foodListForActor, true, false)
+	akTarget.ModActorValue("CarryWeight", -100)
 endFunction
 
 FormList function GetFoodListForOriginalRace(Actor akTarget)

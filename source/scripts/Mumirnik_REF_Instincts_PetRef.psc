@@ -9,8 +9,11 @@ Message property BleedoutMessageHELP auto
 Message property DeathMessage auto
 
 event OnItemAdded(Form akBaseItem, int aiItemCount, ObjectReference akItemReference, ObjectReference akSourceContainer)
-	if (((akBaseItem as Ingredient) || (akBaseItem as Potion)) && CurrentPetIsEatingGlobal.GetValue() == 1)
+	bool isEating = (CurrentPetIsEatingGlobal.GetValue() == 1)
+	if (((akBaseItem as Ingredient) || (akBaseItem as Potion)) && isEating)
 		(GetOwningQuest() as Mumirnik_Quest_Instincts_Feeding).ReceiveFood(self.GetActorReference(), akBaseItem, aiItemCount)
+	elseIf(((akBaseItem as Armor) || (akBaseItem as Weapon)) && !isEating)
+		(self.GetActorReference()).UnequipAll()	; UnequipItem does not seem to work
 	endIf
 endEvent
 
