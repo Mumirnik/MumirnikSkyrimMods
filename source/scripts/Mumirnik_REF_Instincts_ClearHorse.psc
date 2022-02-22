@@ -25,6 +25,8 @@ event OnActivate(ObjectReference akActivator)	; this handles intentional dismoun
 endEvent
 
 function StopRiding()
-	self.GetReference().BlockActivation(false)
+	Actor selfREF = self.GetActorReference()
+	selfREF.BlockActivation(false)
 	self.Clear()
+	selfREF.EvaluatePackage()
 endFunction

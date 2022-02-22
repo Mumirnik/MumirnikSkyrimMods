@@ -12,6 +12,7 @@ Actor property PlayerREF auto
 ActorBase[] property RaceSubstituteOriginalActorBaseList auto
 ActorBase[] property RaceSubstituteActorListF auto
 ActorBase[] property RaceSubstituteActorListM auto
+bool property UsePerkBasedPowerBudget = false auto
 FormList property NewRaceList auto
 FormList property OriginalRaceList auto
 {List of races that can be turned into pets.}
@@ -41,6 +42,9 @@ Message property PetPowerCheckFAILED auto
 Message[] property TamedMessage auto
 {Shown when a pet is tamed.}
 Perk property PowerMaxPerk auto
+Perk property PowerBudgetPerk1 auto
+Perk property PowerBudgetPerk2 auto
+Perk property PowerBudgetPerk3 auto
 Race[] property ForcedFemaleRaceList auto
 {Original races in this list will always become female.}
 Race[] property ForcedMaleRaceList auto
@@ -71,21 +75,34 @@ bool function CheckPowerBudget(Actor akTarget)
 ;		return false
 ;	endIf
 
-	float playerSkill = PlayerREF.GetActorValue("Speechcraft")
 	int powerMax = 0
-	if (playerSkill < 20)
-		powerMax = 6
-	elseIf (playerSkill < 40)
-		powerMax = 7
-	elseIf (playerSkill < 60)
-		powerMax = 8
-	elseIf (playerSkill < 80)
-		powerMax = 9
+	if (UsePerkBasedPowerBudget)
+		if (playerREF.HasPerk(PowerBudgetPerk3))
+			powerMax = 10
+		elseIf (playerREF.HasPerk(PowerBudgetPerk2))
+			powerMax = 8
+		elseIf (playerREF.HasPerk(PowerBudgetPerk1))
+			powerMax = 6
+		else
+			powerMax = 4
+		endIf
 	else
-		powerMax = 10
-	endIf
-	if (PlayerREF.HasPerk(PowerMaxPerk))
-		powerMax += 1
+		float playerSkill = PlayerREF.GetActorValue("Speechcraft")
+		powerMax = 0
+		if (playerSkill < 20)
+			powerMax = 6
+		elseIf (playerSkill < 40)
+			powerMax = 7
+		elseIf (playerSkill < 60)
+			powerMax = 8
+		elseIf (playerSkill < 80)
+			powerMax = 9
+		else
+			powerMax = 10
+		endIf
+		if (PlayerREF.HasPerk(PowerMaxPerk))
+			powerMax += 1
+		endIf
 	endIf
 	PetPowerMax.SetValue(powerMax)
 
@@ -163,6 +180,10 @@ function MakePet(Actor akTarget)
 
 	ActorBase targetActorBase = akTarget.GetLeveledActorBase()
 	int raceSubstituteActorBaseId = RaceSubstituteOriginalActorBaseList.Find(targetActorBase)
+	if (raceSubstituteActorBaseId == -1)
+		targetActorBase = akTarget.GetActorBase()
+		raceSubstituteActorBaseId = RaceSubstituteOriginalActorBaseList.Find(targetActorBase)
+	endIf	
 	if (raceSubstituteActorBaseId != -1)
 		if (gender == 1 || isForcedRandomGenderMaleVisuals)
 			newActorBase = RaceSubstituteActorListM[raceSubstituteActorBaseId]
